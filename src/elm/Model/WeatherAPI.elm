@@ -2,6 +2,54 @@ module Model.WeatherAPI exposing (..)
 
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (decode, required, optional)
+import Model.Weather exposing (Weather)
+
+
+type alias ForecastResponse =
+    { desc : String
+    , high : String
+    , low : String
+    }
+
+
+emptyForecastResp : ForecastResponse
+emptyForecastResp =
+    { desc = ""
+    , high = ""
+    , low = ""
+    }
+
+
+getForecastResponse : Maybe Forecast -> ForecastResponse
+getForecastResponse f =
+    case f of
+        Nothing ->
+            emptyForecastResp
+
+        Just f ->
+            { desc = f.text
+            , high = f.high
+            , low = f.low
+            }
+
+
+getWeatherFromWeatherResponse : WeatherResponse -> Weather
+getWeatherFromWeatherResponse wr =
+    let
+        item =
+            wr.query.results.channel.item
+
+        ct =
+            item.condition.temp
+
+        fResp =
+            getForecastResponse (List.head item.forecast)
+    in
+        { currentTemp = ct
+        , desc = fResp.desc
+        , high = fResp.high
+        , low = fResp.low
+        }
 
 
 type alias WeatherResponse =

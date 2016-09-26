@@ -2,122 +2,83 @@ module Main exposing (..)
 
 import Html exposing (..)
 import Html.App as App
-import Http
-import Task
 import Html.CssHelpers
 import Style.MyCss as MyCss
-import Model.WeatherAPI exposing (..)
-import Model.Weather exposing (Weather)
-import Components.Weather exposing (weatherView)
+import Components.SubredditContainer as SRContainer
+import Components.WeatherContainer as WContainer
 
 
 { id, class, classList } =
-    Html.CssHelpers.withNamespace "myweather"
-getWeatherFromWeatherResponse : WeatherResponse -> Weather
-getWeatherFromWeatherResponse wr =
-    let
-        item =
-            wr.query.results.channel.item
-
-        ct =
-            item.condition.temp
-
-        fResp =
-            getForecastResponse (List.head item.forecast)
-    in
-        { currentTemp = ct
-        , desc = fResp.desc
-        , high = fResp.high
-        , low = fResp.low
-        }
-
-
-type alias ForecastResponse =
-    { desc : String
-    , high : String
-    , low : String
+    Html.CssHelpers.withNamespace "metab"
+type alias AppModel =
+    { weatherModel : WContainer.Model
+    , srModel : SRContainer.Model
     }
 
 
-emptyForecastResp : ForecastResponse
-emptyForecastResp =
-    { desc = initModel.desc
-    , high = initModel.high
-    , low = initModel.low
+initialModel : AppModel
+initialModel =
+    { weatherModel = WContainer.initModel
+    , srModel = SRContainer.initModel
     }
 
 
-getForecastResponse : Maybe Forecast -> ForecastResponse
-getForecastResponse f =
-    case f of
-        Nothing ->
-            emptyForecastResp
-
-        Just f ->
-            { desc = f.text
-            , high = f.high
-            , low = f.low
-            }
-
-
-getWeather : Cmd Msg
-getWeather =
-    let
-        url =
-            "https://query.yahooapis.com/v1/public/yql?q=select * from weather.forecast where u='f' AND woeid in (select woeid from geo.places(1) where text=\" minneapolis \")&format=json"
-
-        task =
-            Http.get weatherResponseDecoder url
-
-        cmd =
-            Task.perform Fail Forecast task
-    in
-        cmd
-
-
-type alias Model =
-    Weather
-
-
-initModel : Model
-initModel =
-    { currentTemp = "na"
-    , desc = "fetching"
-    , high = "99"
-    , low = "99"
-    }
-
-
-init : ( Model, Cmd Msg )
+init : ( AppModel, Cmd Msg )
 init =
-    ( initModel, getWeather )
+    ( initialModel
+    , Cmd.batch
+        [ Cmd.map WeatherMsg WContainer.getWeather
+        , Cmd.map SubRedditMsg (SRContainer.getSubReddit SRContainer.Scala)
+        , Cmd.map SubRedditMsg (SRContainer.getSubReddit SRContainer.Elm)
+        , Cmd.map SubRedditMsg (SRContainer.getSubReddit SRContainer.React)
+        ]
+    )
 
 
 
+-- ( initialModel, [ WContainer.getWeather, SRContainer.getSubReddit SRContainer.Scala, SRContainer.getSubReddit SRContainer.Elm, SRContainer.getSubReddit SRContainer.React ] )
 --update
 
 
 type Msg
-    = Forecast WeatherResponse
-    | Fail Http.Error
+    = WeatherMsg WContainer.Msg
+    | SubRedditMsg SRContainer.Msg
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> AppModel -> ( AppModel, Cmd Msg )
 update msg model =
     case msg of
-        Forecast resp ->
-            ( getWeatherFromWeatherResponse resp, Cmd.none )
+        WeatherMsg subMsg ->
+            let
+                ( updatedWeatherModel, weatherCmd ) =
+                    WContainer.update subMsg model.weatherModel
+            in
+                ( { model | weatherModel = updatedWeatherModel }, Cmd.map WeatherMsg weatherCmd )
 
-        Fail error ->
-            ( initModel, Cmd.none )
+        SubRedditMsg subMsg ->
+            let
+                ( updatedSRModel, subredditCmd ) =
+                    SRContainer.update subMsg model.srModel
+            in
+                ( { model | srModel = updatedSRModel }, Cmd.map SubRedditMsg subredditCmd )
 
 
-view : Model -> Html Msg
+
+-- what I am thinking is now I know how to send messages to child ot fetch data
+-- I coudl have 3 SRContainers ...and have that view be singular
+-- or I could have one view layout 3 columns and data .. thats not super bad is it
+-- I could extract view code to one fn so SRC itself is just row/col col col view
+
+
+view : AppModel -> Html Msg
 view model =
-    div [ class [ MyCss.App ] ] [ weatherView model ]
+    div [ class [ MyCss.App ] ]
+        [ App.map WeatherMsg (WContainer.view model.weatherModel)
+        , App.map SubRedditMsg (SRContainer.view model.srModel)
+        ]
 
 
-subscriptions : Model -> Sub Msg
+subscriptions : AppModel -> Sub Msg
 subscriptions model =
     Sub.none
 
