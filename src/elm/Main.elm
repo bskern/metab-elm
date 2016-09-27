@@ -48,11 +48,6 @@ init2 time =
     )
 
 
-
--- ( initialModel, [ WContainer.getWeather, SRContainer.getSubReddit SRContainer.Scala, SRContainer.getSubReddit SRContainer.Elm, SRContainer.getSubReddit SRContainer.React ] )
---update
-
-
 type Msg
     = WeatherMsg WContainer.Msg
     | SubRedditMsg SRContainer.Msg
@@ -90,13 +85,6 @@ update msg model =
 
         None ->
             ( model, Cmd.none )
-
-
-
--- what I am thinking is now I know how to send messages to child ot fetch data
--- I coudl have 3 SRContainers ...and have that view be singular
--- or I could have one view layout 3 columns and data .. thats not super bad is it
--- I could extract view code to one fn so SRC itself is just row/col col col view
 
 
 view : AppModel -> Html Msg
