@@ -3,6 +3,7 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.App as App
 import Html.CssHelpers
+import Html.Attributes exposing (..)
 import Style.MyCss as MyCss
 import Components.SubredditContainer as SRContainer
 import Components.WeatherContainer as WContainer
@@ -101,9 +102,11 @@ update msg model =
 view : AppModel -> Html Msg
 view model =
     div [ class [ MyCss.App ] ]
-        [ App.map WeatherMsg (WContainer.view model.weatherModel)
-        , App.map SubRedditMsg (SRContainer.view model.srModel)
-        , App.map HackerNewsMsg (HNContainer.view model.hnModel)
+        [ div [ Html.Attributes.class "container-fluid" ]
+            [ App.map WeatherMsg (WContainer.view model.weatherModel)
+            , App.map SubRedditMsg (SRContainer.view model.srModel)
+            , App.map HackerNewsMsg (HNContainer.view model.hnModel)
+            ]
         ]
 
 
